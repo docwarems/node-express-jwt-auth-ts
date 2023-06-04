@@ -1,8 +1,20 @@
-import mongoose from 'mongoose';
+import { Model, Schema, model} from 'mongoose';
 const { isEmail } = require('validator');
 import bcrypt from 'bcrypt';
 
-const userSchema = new mongoose.Schema({
+// the adding of a static User Method from the JS code had to be rewritten according to
+// https://mongoosejs.com/docs/typescript/statics-and-methods.html
+
+interface IUser {
+  email: string,
+  password: string,
+}
+
+interface UserModel extends Model<IUser> {
+  login(email: string, password: string): any;
+}
+
+const userSchema = new Schema<IUser, UserModel>({
   email: {
     type: String,
     required: [true, 'Please enter an email'],
@@ -16,18 +28,8 @@ const userSchema = new mongoose.Schema({
     minlength: [6, 'Minimum password length is 6 characters'],
   }
 });
-
-
-// fire a function before doc saved to db
-userSchema.pre('save', async function(next: any) {
-  const salt = await bcrypt.genSalt();
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-// static method to login user
-userSchema.statics.login = async function(email: string, password: string) {
-  const user = await this.findOne({ email });
+userSchema.static("login", async function login(email: string, password: string) {
+  const user: any = await this.findOne({ email });
   if (user) {
     const auth = await bcrypt.compare(password, user.password);
     if (auth) {
@@ -36,8 +38,14 @@ userSchema.statics.login = async function(email: string, password: string) {
     throw Error('incorrect password');
   }
   throw Error('incorrect email');
-};
+});
 
-const User = mongoose.model('user', userSchema);
+// fire a function before doc saved to db
+userSchema.pre('save', async function(next: any) {
+  const salt = await bcrypt.genSalt();
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
-module.exports = User;
+
+export const User = model<IUser, UserModel>('User', userSchema);
