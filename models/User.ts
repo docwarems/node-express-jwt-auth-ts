@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { isEmail } = require('validator');
-const bcrypt = require('bcrypt');
+import bcrypt from 'bcrypt';
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -19,14 +19,14 @@ const userSchema = new mongoose.Schema({
 
 
 // fire a function before doc saved to db
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function(next: any) {
   const salt = await bcrypt.genSalt();
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
 // static method to login user
-userSchema.statics.login = async function(email, password) {
+userSchema.statics.login = async function(email: string, password: string) {
   const user = await this.findOne({ email });
   if (user) {
     const auth = await bcrypt.compare(password, user.password);
